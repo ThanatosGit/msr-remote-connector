@@ -1,15 +1,14 @@
 #ifndef REMOTECONNECTOR_API_H
 #define REMOTECONNECTOR_API_H
 
-#include <3ds.h>
 #include <atomic>
-#include<pthread.h>
+#include <pthread.h>
 
 #define SIZE_RECV_BUFFER 4096
 #define SIZE_SEND_BUFFER 4096
 #define SERVER_PORT 42069
 
-extern s32 client_sock;
+extern int32_t client_sock;
 extern uint8_t recv_buffer[SIZE_RECV_BUFFER];
 extern void handle_remote_lua_exec(const char* lua_result, size_t result_size, bool output_success);
 extern void handle_generic_message(uint8_t packet_type, const char* message, size_t message_size);

@@ -1,23 +1,28 @@
 #include <string.h>
 #include <malloc.h>
-#include <arpa/inet.h>
+// #include <arpa/inet.h>
 #include "remote_connector_api.h"
 #include <cstdlib>
-
+#include "socket.h"
+extern "C" {
+#include "svc.h"
+#include "soc.h"
+}
+    
 
 // aligned section for soc:u service
-u32 __attribute__((section (".socServiceBufferSection"))) socServiceBuffer[4096];
+uint32_t __attribute__((section (".socServiceBufferSection"))) socServiceBuffer[4096];
 
 // no idea why the recv_thread_stack needs to be on the heap but otherwise
 // the socket functions just fails
-u8* recv_thread_stack;
+uint8_t* recv_thread_stack;
 uint8_t recv_buffer[SIZE_RECV_BUFFER];
 uint8_t send_buffer[SIZE_SEND_BUFFER];
 
-Handle recv_thread = -1;
+uint32_t recv_thread = -1;
 
-s32 server_sock = -1;
-s32 client_sock = -1;
+int32_t server_sock = -1;
+int32_t client_sock = -1;
 uint8_t request_number = 0;
 
 std::atomic_bool ready_for_game_thread = { false };
@@ -30,7 +35,6 @@ struct ClientSubscriptions client_subs;
 void parse_client_packet(int length);
 
 
-
 /* Inits the server by using socInit and create server socket by using standard Berkeley socket api calls */
 int init_server() {
     int ret;
@@ -38,13 +42,11 @@ int init_server() {
     struct sockaddr_in server;
     memset(&server, 0, sizeof (server));
     server.sin_family = AF_INET;
-    server.sin_port = htons(SERVER_PORT);
+    server.sin_port = __builtin_bswap16(SERVER_PORT);
     server.sin_addr.s_addr = INADDR_ANY;
 
-    int opt = 1;
-
     // init soc services
-    if ((ret = socInit(socServiceBuffer, 4096*4)) != 0) {
+    if ((ret = socInit((uint32_t*)socServiceBuffer, 4096*4)) != 0) {
         return -1;
     }
 
@@ -54,7 +56,7 @@ int init_server() {
         return -1;
     }
 
-    setsockopt((s32)&server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    // setsockopt((s32)&server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     ret = bind(server_sock, (struct sockaddr *) &server, sizeof (server));
     if (ret != 0) {
@@ -82,26 +84,26 @@ void listen_and_receive_function(void* argv) {
     clientlen = sizeof(client);
     memset(&client, 0, sizeof (client));
 
-    while (server_sock != -1) {
-        pthread_mutex_lock(&mutex);
-        client_subs.logging = false;
-        client_subs.multiworld = false;
+    while (true) {
+        // pthread_mutex_lock(&mutex);
+        // client_subs.logging = false;
+        // client_subs.multiworld = false;
         client_sock = accept(server_sock, (struct sockaddr *)&client, &clientlen);
-        request_number = 0;
-        while ((ret = recv (client_sock, recv_buffer, SIZE_RECV_BUFFER, 0)) > 0) {
-            parse_client_packet(ret);
+        // request_number = 0;
+        // while ((ret = recv (client_sock, recv_buffer, SIZE_RECV_BUFFER, 0)) > 0) {
+        //     parse_client_packet(ret);
 
-            while (ready_for_game_thread.load()) {
-                pthread_cond_wait(&lua_done, &mutex);
-            }
-            memset(recv_buffer, 0, SIZE_RECV_BUFFER);
-        }
-        close(client_sock);
+        //     while (ready_for_game_thread.load()) {
+        //         pthread_cond_wait(&lua_done, &mutex);
+        //     }
+        //     memset(recv_buffer, 0, SIZE_RECV_BUFFER);
+        // }
+        // svcBreak(0x01);
+        // close(client_sock);
         client_sock = -1;
-        pthread_mutex_unlock(&mutex);
+        // pthread_mutex_unlock(&mutex);
     }
-    socExit();
-    srvExit();
+    // socExit();
     svcExitThread();
     return;
 }
@@ -110,7 +112,7 @@ void listen_and_receive_function(void* argv) {
 /* Sends the "buffer" via the socket, iff it is connected */
 void send_packet(uint8_t* buffer, int length) {
     if (client_sock != -1) {
-        send(client_sock, buffer, length, 0);
+        // send(client_sock, buffer, length, 0);
     }
 }
 
@@ -187,19 +189,18 @@ void parse_client_packet(int length) {
 
 /* Shutsdown the soc service. Doesn't do anything on citra because "atexit" isn't called */
 void soc_shutdown() {
-    if (client_sock != -1) close(client_sock);
-    if (server_sock != -1) close(server_sock);
+    // if (client_sock != -1) close(client_sock);
+    // if (server_sock != -1) close(server_sock);
     server_sock = -1;
     client_sock = -1;
 }
 
-
+    
 /* Creates the remote connector thread. Is called by lua via RL.Init -> "remote_connector_init" */
 void create_remote_connector_thread() {
-    // init service api from libctru
-    srvInit();
-    recv_thread_stack = (u8*) memalign(8, SIZE_RECV_BUFFER);
-    u8* top = recv_thread_stack + 4096;
-    svcCreateThread(&recv_thread, listen_and_receive_function, 0, (u32*)top, 30, 1);
-    atexit(soc_shutdown);
+    recv_thread_stack = (uint8_t*) memalign(8, 4096);
+    uint8_t* top = recv_thread_stack + 4096;
+
+    svcCreateThread(&recv_thread, listen_and_receive_function, 0, (uint32_t*)top, 30, 1);
+    // atexit(soc_shutdown);
 }

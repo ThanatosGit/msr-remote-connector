@@ -46,14 +46,12 @@ CFLAGS	:=	-g0 -Wall -O2 -mword-relocations \
 			-fomit-frame-pointer -ffunction-sections \
 			$(ARCH)
 
-CFLAGS	+=	-I/opt/devkitpro/libctru/include -D__3DS__
-
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
 ASFLAGS	:=	-g0 $(ARCH)
 LDFLAGS	=	-T $(LINKERSCRIPT) -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lctru -lm
+LIBS	:= -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -146,8 +144,6 @@ SECTIONS
 	{
 		KEEP(*(.socServiceBufferSection))
 	}
-  	__exidx_start = .;
-    __exidx_end = .;
 
 	__end__ = .;
 }
@@ -174,7 +170,7 @@ $(OUTPUT).sym : $(OUTPUT).elf
 	echo "$$LINKERSCRIPT_TEMPLATE" > $(LINKERSCRIPT)
 	
 	@echo linking $(notdir $@)
-	$(LD) $(LDFLAGS) $(OFILES) -L/opt/devkitpro/libctru/lib -lctru -lm -o $@
+	$(LD) $(LDFLAGS) $(OFILES) -lm -o $@
 
 #---------------------------------------------------------------------------------
 %.o: %.cpp

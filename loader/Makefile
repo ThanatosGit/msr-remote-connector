@@ -9,7 +9,6 @@ endif
 
 export PORTLIBS	:=	$(DEVKITPRO)/portlibs/arm
 export PATH		:=	$(DEVKITARM)/bin:$(PORTLIBS)/bin:$(PATH)
-CTRULIB	:=	$(DEVKITPRO)/libctru
 
 #---------------------------------------------------------------------------------
 # the prefix on the compiler executables
@@ -46,20 +45,20 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 			-fomit-frame-pointer -ffunction-sections \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
+CFLAGS	+=	$(INCLUDE) -DARM11
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-T $(LINKERSCRIPT) -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lctru -lm
+LIBS	:= -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:=	$(CTRULIB)  $(DEVKITARM) $(DEVKITARM)/arm-none-eabi 
+LIBDIRS	:=	$(DEVKITARM) $(DEVKITARM)/arm-none-eabi 
 
 
 #---------------------------------------------------------------------------------
